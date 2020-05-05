@@ -1,9 +1,10 @@
 import React,{useEffect, useState} from 'react';
 import { Feather } from '@expo/vector-icons'
-import { View, FlatList, Text, Image, TouchableOpacity } from 'react-native';
+import { View, FlatList, Text, Image, TouchableOpacity, TouchableOpacityBase } from 'react-native';
 import { useNavigation } from '@react-navigation/native'
 
 import api from '../../services/api'
+import {useAuth} from '../../contexts/auth'
 
 import logoImg from '../../assets/logo.png'
 import styles from './style'
@@ -13,6 +14,7 @@ export default function Incidents() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
+  const {signOut, user} = useAuth()
   const navigation = useNavigation()
 
   function navigateToDetail(incident){
@@ -50,11 +52,13 @@ export default function Incidents() {
           <Text style={styles.headerText}>
             Total de <Text style={styles.headerTextBold}>{total} casos</Text>
           </Text>
-
+          <TouchableOpacity onPress={signOut}>
+            <Text style={{color:"#e02041"}}>Sair</Text>
+          </TouchableOpacity>
         </View>
         <Text style={styles.authText}>Developed by <Text style={styles.authTextBold}>Luis Rodrigues</Text></Text>
 
-        <Text style={styles.title}>Bem Vindo!</Text>
+        <Text style={styles.title}>Bem Vindo, {user?.name}!</Text>
         <Text style={styles.description}>Escolha um dos casos abaixos e salve o dia</Text>
 
         <FlatList 
