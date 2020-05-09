@@ -30,9 +30,8 @@ export const AuthProvider = ({children}) => {
     if (response.error) {
       return response;
     }
-    
+
     setUser(response.user)
-    console.log(!!response.user)
 
     api.defaults.headers.Authorization = `Bearer ${response.token}`
     // axios.defaults.headers.common['Authorization'] = 'Bearer test';
