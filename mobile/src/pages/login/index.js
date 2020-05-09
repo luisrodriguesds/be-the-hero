@@ -1,27 +1,67 @@
-import React from 'react';
-import { View, StyleSheet, TextInput, Text, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, TextInput, Text, Image, TouchableOpacity, Alert } from 'react-native';
 import Constants from 'expo-constants'
-
+import Input from '../../components/Input'
 import logoImg from '../../assets/logo.png'
-import api from '../../services/api'
 import {useAuth} from '../../contexts/auth'
-
+import { Form } from '@unform/mobile';
 import { useNavigation } from '@react-navigation/native'
+import * as Yup from 'yup'
 
 // import { Container } from './styles';
 
 const login = () => {
+
+  const [error, setError] = useState({
+    error:false,
+    field:'',
+    message:''
+  })
+
+  const formRef = useRef(null)
   const navigation = useNavigation()
 
-  const {signed, user, signIn} = useAuth()
-  console.log(signed, user)
+  const {signIn} = useAuth()
 
-  function navigateToRegister(incident){
-    navigation.navigate('Register', { incident })
+  function navigateToRegister(){
+    navigation.navigate('Register')
   }
 
-  async function handleSingIn(){
-    await signIn()
+  async function handleSingIn(data, { reset }){
+    try {
+      const schema = Yup.object().shape({
+        email: Yup.string()
+          .email('Digite um email válido')
+          .required('Campo obrigatório'),
+        password: Yup.string().required('Campo Obrigatório')
+      })
+      await schema.validate(data, {
+        abortEarly: false
+      })
+
+      const response = await signIn(data.email, data.password)
+      if (response.error) {
+        setError({
+          error:true,
+          field:response.field,
+          message:response.message
+        })
+      }
+      setError({error:false})
+      formRef.current.setErrors({})
+
+    } catch (error) {
+      if(error instanceof Yup.ValidationError){
+        console.log(error)
+        const errorMessages = {}
+        error.inner.forEach(erro => {
+          errorMessages[erro.path] = erro.message
+        })
+        formRef.current.setErrors(errorMessages)
+      }
+    }
+
+    
   }
 
   return (
@@ -29,25 +69,37 @@ const login = () => {
       <View style={styles.body}>
         <Image source={logoImg}/>
         <View style={styles.inputs}>
-          
-          <Text style={styles.inputText}>Email</Text>
-          <TextInput style={styles.input} placeholder="Digite seu email ..." />
-        
-          <Text style={styles.inputText}>Senha</Text>
-          <TextInput style={styles.input} placeholder="Digite sua senha ..." secureTextEntry={true} />
+          {error.error && Alert.alert(`${error.field}`, `${error.message}`)}
+          <Form ref={formRef} onSubmit={handleSingIn}>
+            <Input 
+              label="Email"
+              name="email" 
+              placeholder="Digite seu email ..."
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
 
-          <TouchableOpacity style={styles.login} onPress={handleSingIn} >
-            <Text style={styles.loginText}>Login</Text>
-          </TouchableOpacity>
+            <Input 
+              label="Password" 
+              name="password" 
+              placeholder="Digite seu password ..." 
+              secureTextEntry={true}
+              autoCapitalize="none"
+            />
+
+            <TouchableOpacity style={styles.login} onPress={() => formRef.current.submitForm()} >
+              <Text style={styles.loginText}>Login</Text>
+            </TouchableOpacity>
+          </Form>
 
           <TouchableOpacity 
             style={styles.link} 
             onPress={() => navigateToRegister()}
+
             >
             <Text style={styles.linkText}>Faça seu cadastro!</Text>
           </TouchableOpacity>
 
-          
         </View>
       </View>
       <View style={styles.wrapDev}>
@@ -72,22 +124,6 @@ const styles = StyleSheet.create({
     width: '100%',
     marginVertical:40 
   },
-  inputText:{
-    fontSize:16,
-    fontWeight: 'bold',
-    color:"#000",
-    marginBottom:5
-  },
-  input:{
-    height:48,
-    backgroundColor:'#f9f9f9',
-    borderRadius:8,
-    paddingVertical:8,
-    paddingHorizontal:10,
-    borderColor:'#eee',
-    borderWidth:1,
-    marginBottom:20
-  },
   login:{
     backgroundColor: '#e02041',
     borderRadius: 8,
@@ -95,6 +131,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop:20
   },
   loginText:{
     color:"#fff",
